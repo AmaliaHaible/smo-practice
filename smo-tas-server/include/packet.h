@@ -16,7 +16,7 @@ namespace smo
     {
         DummyInit = (u8) -1, Init = (u8) -2, Log = (u8) -3
     };
-    
+
     class InPacket
     {
     public:
@@ -26,7 +26,7 @@ namespace smo
 
     enum class OutPacketType : u8
     {
-        PlayerScriptInfo = 1, PlayerScriptData = 2, PlayerTeleport = 3, PlayerGo = 4
+        PlayerScriptInfo = 1, PlayerScriptData = 2, PlayerTeleport = 3, PlayerGo = 4, Select = 5, UINavigation = 6, PlayerScriptState = 7
     };
     
     class OutPacket
@@ -62,6 +62,7 @@ namespace smo
     {
     public:
         Vector3f pos;
+        Quatf rot;
 
         u32 calcLen();
         void construct(u8* dst);
@@ -83,6 +84,15 @@ namespace smo
     {
     public:
         fl::TasScript script;
+
+        u32 calcLen();
+        void construct(u8* dst);
+    };
+
+    class OutPacketPlayerScriptState : public OutPacket
+    {
+    public:
+        u8 state; //1 = start, 0 = stop
 
         u32 calcLen();
         void construct(u8* dst);

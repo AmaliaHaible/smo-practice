@@ -3,6 +3,6 @@
 int main()
 {
     smo::Server server;
-    server.start(7904);
+    server.start(7902);
     return 0;
 }

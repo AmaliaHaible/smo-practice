@@ -40,7 +40,7 @@ void smo::OutPacketPlayerScriptInfo::construct(u8* dst)
 
 u32 smo::OutPacketPlayerTeleport::calcLen()
 {
-    return 12;
+    return 28;
 }
 
 void smo::OutPacketPlayerTeleport::construct(u8* dst)
@@ -48,6 +48,10 @@ void smo::OutPacketPlayerTeleport::construct(u8* dst)
     *((float*) &dst[0]) = pos.x;
     *((float*) &dst[4]) = pos.y;
     *((float*) &dst[8]) = pos.z;
+    *((float*) &dst[12]) = rot.w;
+    *((float*) &dst[16]) = rot.x;
+    *((float*) &dst[20]) = rot.y;
+    *((float*) &dst[24]) = rot.z;
 }
 
 u32 smo::OutPacketPlayerGo::calcLen()
@@ -73,4 +77,14 @@ u32 smo::OutPacketPlayerScriptData::calcLen()
 void smo::OutPacketPlayerScriptData::construct(u8* dst)
 {
     memcpy(dst, script.frames.data(), script.frames.size() * sizeof(fl::TasFrame));
+}
+
+u32 smo::OutPacketPlayerScriptState::calcLen()
+{
+    return 1;
+}
+
+void smo::OutPacketPlayerScriptState::construct(u8* dst)
+{
+    dst[0] = state;
 }
