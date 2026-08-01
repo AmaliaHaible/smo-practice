@@ -25,3 +25,4 @@ void drawAreaObjGroup(sead::PrimitiveRenderer* renderer, al::AreaObjGroup const*
 void drawAreaObj(sead::PrimitiveRenderer* renderer, al::AreaObj const* area, bool isDrawSolid = false, sead::Color4f wire = sead::Color4f(0.0f, 1.0f, 0.0f, 0.5f), sead::Color4f solid = sead::Color4f(0.0f, 1.0f, 0.0f, 0.1f), sead::Color4f cyl = sead::Color4f(0.0f, 1.0f, 0.0f, 0.1f));
 void drawHitInfo(sead::PrimitiveRenderer* renderer, al::HitInfo const* hitInfo, sead::Color4f wire = sead::Color4f(0.96f, 0.96f, 0.86f, 0.8f), sead::Color4f solid = sead::Color4f(1.0f, 0.1f, 0.1f, 0.3f));
 void drawAllCollision(sead::PrimitiveRenderer* renderer, al::LiveActorKit const& liveActorKit);
+void drawMovementPath(sead::PrimitiveRenderer* renderer, sead::Vector3f const* points, int count, int writeIndex, int capacity, float radius = 10.0f, sead::Color4f color = sead::Color4f(1.0f, 1.0f, 0.0f, 0.8f));

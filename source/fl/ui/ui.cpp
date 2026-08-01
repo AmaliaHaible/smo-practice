@@ -504,10 +504,37 @@ void fl::ui::PracticeUI::toggleNoclip(PlayerActorHakoniwa& player) {
     }
 }
 
+static constexpr float kMovementPathMinDistance = 20.0f;
+// Mario's transform sits at ground level, which z-fights with the terrain mesh when drawn as a flat line.
+// Lift the recorded trail slightly so it's actually visible above the floor.
+static constexpr float kMovementPathHeightOffset = 15.0f;
+
+void fl::ui::PracticeUI::resetMovementPath() {
+    renderer.pathPointCount = 0;
+    renderer.pathWriteIndex = 0;
+}
+
+void fl::ui::PracticeUI::updateMovementPath(PlayerActorHakoniwa& player) {
+    sead::Vector3f pos = *al::getTrans(&player);
+    pos.y += kMovementPathHeightOffset;
+
+    if (renderer.pathPointCount > 0) {
+        sead::Vector3f const& last = renderer.pathPoints[(renderer.pathWriteIndex + kMaxPathPoints - 1) % kMaxPathPoints];
+        if (sead::norm2(pos - last) < kMovementPathMinDistance)
+            return;
+    }
+
+    renderer.pathPoints[renderer.pathWriteIndex] = pos;
+    renderer.pathWriteIndex = (renderer.pathWriteIndex + 1) % kMaxPathPoints;
+    if (renderer.pathPointCount < kMaxPathPoints)
+        renderer.pathPointCount++;
+}
+
 void fl::ui::PracticeUI::kill() {
     renderer.curArea = nullptr;
     renderer.curAreaGroup = nullptr;
     renderer.nearestEdgePoint = sead::Vector3f::zero;
+    resetMovementPath();
 
     currentActor = nullptr;
     actorIndex = 0;
@@ -536,6 +563,9 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
     } else if (holdL && isTriggerLeft()) {
             showMenu = !showMenu;
             nextFrameNoLeftInput = true;
+    } else if (holdL && isTriggerUp()) {
+        renderer.showMovementPath = !renderer.showMovementPath;
+        return;
     }
 
 
@@ -547,6 +577,9 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
 
     if (!player) return;
 
+    if (renderer.showMovementPath)
+        updateMovementPath(*player);
+
     if (!showMenu || (!inputEnabled && !holdL))
     {
         if (options.teleportEnabled)
@@ -556,8 +589,10 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
 			if (isTriggerLeft() && !holdL)
 				savePosition(*player, savestateIndex);
 
-            if (triggerRight && savestates[savestateIndex].mSaved)
+            if (triggerRight && savestates[savestateIndex].mSaved) {
                 loadPositionPlayer(*player, savestateIndex);
+                resetMovementPath();
+            }
         }
 
         if (options.noclipEnabled)
@@ -565,7 +600,7 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
             if (isTriggerUp())
                 toggleNoclip(*player);
         }
-        
+
 #if SMOVER == 100
         if (options.reloadDUP && isTriggerUp()) {
             StageScene* stageScene = getStageScene();
@@ -816,7 +851,7 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
             }
             case OptionsRenderer: {
                 TITLE("Options: Renderer");
-                MAX_LINE(12);
+                MAX_LINE(13);
                 BACK_PAGE(Options, 0);
 
                 TOGGLE("Enable Game rendering", options.shouldRender, 1);
@@ -830,6 +865,10 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
                 TOGGLE("Show ceiling HitInfo", renderer.showHitInfoCeil, 9);
                 TOGGLE("Show HitInfo array", renderer.showHitInfoArray, 10);
                 TOGGLE("Show CRC position", renderer.showCRC, 11);
+                TOGGLE("Show movement path", renderer.showMovementPath, 12);
+                printf(" Path points: %d (write idx %d)\n", renderer.pathPointCount, renderer.pathWriteIndex);
+                if (renderer.pathPointCount > 0)
+                    PRINT_VEC3(" Last point", renderer.pathPoints[(renderer.pathWriteIndex + kMaxPathPoints - 1) % kMaxPathPoints]);
 
                 break;
             }

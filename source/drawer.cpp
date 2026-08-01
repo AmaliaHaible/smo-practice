@@ -92,6 +92,18 @@ void drawHitInfo(sead::PrimitiveRenderer* renderer, al::HitInfo const* hitInfo, 
 }
 
 
+void drawMovementPath(sead::PrimitiveRenderer* renderer, sead::Vector3f const* points, int count, int writeIndex, int capacity, float radius, sead::Color4f color) {
+    if (count < 1) return;
+
+    // Once the ring buffer has wrapped, the oldest point sits right where the next write will land.
+    int startIndex = (count < capacity) ? 0 : writeIndex;
+
+    for (int i = 0; i < count; ++i) {
+        sead::Vector3f const& p = points[(startIndex + i) % capacity];
+        renderer->drawSphere4x8(p, radius, color);
+    }
+}
+
 void drawAllCollision(sead::PrimitiveRenderer* renderer, al::LiveActorKit const& liveActorKit) {
     sead::PtrArray<al::LiveActor> actors = liveActorKit.mAllActors->mActors;
 

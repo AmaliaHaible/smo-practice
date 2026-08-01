@@ -28,6 +28,8 @@ namespace ui {
 
     class Page;
 
+    constexpr int kMaxPathPoints = 1024;
+
     class PracticeUI {
     public:
         static inline PracticeUI& instance()
@@ -107,6 +109,11 @@ namespace ui {
             al::Triangle kclTri = al::Triangle();
 #endif
             bool showHitSensors = false;
+
+            bool showMovementPath = false;
+            sead::Vector3f pathPoints[kMaxPathPoints];
+            int pathPointCount = 0; // number of valid points, saturates at kMaxPathPoints
+            int pathWriteIndex = 0; // next write position (ring buffer)
         } renderer;
 
         struct {
@@ -278,6 +285,8 @@ namespace ui {
         void loadPositionPlayer(PlayerActorHakoniwa& player, s8 idx);
         void loadPosition(al::LiveActor* actor, s8 idx);
         void toggleNoclip(PlayerActorHakoniwa& player);
+        void resetMovementPath();
+        void updateMovementPath(PlayerActorHakoniwa& player);
         #if SMOVER == 100
         const char* getNerveName(al::LiveActor* actor);
         #endif

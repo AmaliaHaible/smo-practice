@@ -225,6 +225,12 @@ void drawMainHook(sead::Viewport* viewport, sead::DrawContext* drawContext, sead
         if (ui.renderer.curAreaGroup && ui.renderer.showAreaGroup)
             drawAreaObjGroup(renderer, ui.renderer.curAreaGroup, false, {0.8f, 0.5f, 0.8f, 0.3f}, {0.8f, 0.5f, 0.8f, 0.3f}, {0.8f, 0.5f, 0.8f, 0.3f});
 
+        if (ui.renderer.showMovementPath) {
+            // Earlier area draws above may have left a non-identity model matrix; our points are absolute world-space.
+            renderer->setModelMatrix(mat);
+            drawMovementPath(renderer, ui.renderer.pathPoints, ui.renderer.pathPointCount, ui.renderer.pathWriteIndex, fl::ui::kMaxPathPoints);
+        }
+
         if (ui.renderer.showCRC && cappy) {
             sead::Vector3f difference = *cappyTrans - *playerTrans;
             sead::Vector3f crc = *playerTrans + sead::dot(difference, playerFacing) * playerFacing;
