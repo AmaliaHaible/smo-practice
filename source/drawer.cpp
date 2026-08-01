@@ -104,6 +104,20 @@ void drawMovementPath(sead::PrimitiveRenderer* renderer, sead::Vector3f const* p
     }
 }
 
+void drawThrowMarkers(sead::PrimitiveRenderer* renderer, sead::Vector3f const* positions, sead::Vector3f const* directions, int count, int writeIndex, int capacity, float arrowLength, sead::Color4f color) {
+    if (count < 1) return;
+
+    int startIndex = (count < capacity) ? 0 : writeIndex;
+
+    for (int i = 0; i < count; ++i) {
+        int idx = (startIndex + i) % capacity;
+        sead::Vector3f const& pos = positions[idx];
+        sead::Vector3f const& dir = directions[idx];
+        renderer->drawSphere4x8(pos, 12.0f, color);
+        renderer->drawLine(pos, pos + dir * arrowLength, color);
+    }
+}
+
 void drawAllCollision(sead::PrimitiveRenderer* renderer, al::LiveActorKit const& liveActorKit) {
     sead::PtrArray<al::LiveActor> actors = liveActorKit.mAllActors->mActors;
 

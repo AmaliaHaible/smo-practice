@@ -29,6 +29,7 @@ namespace ui {
     class Page;
 
     constexpr int kMaxPathPoints = 1024;
+    constexpr int kMaxCapThrows = 32;
 
     class PracticeUI {
     public:
@@ -117,10 +118,18 @@ namespace ui {
             int marioPathPointCount = 0; // number of valid points, saturates at kMaxPathPoints
             int marioPathWriteIndex = 0; // next write position (ring buffer)
 
-            bool showCapPath = false;
+            // Full trail of Cappy's flight, accumulated across every throw since the last reset.
+            bool showCapFullPath = false;
             sead::Vector3f capPathPoints[kMaxPathPoints];
             int capPathPointCount = 0;
             int capPathWriteIndex = 0;
+
+            // One entry per throw: where Cappy was thrown from and which way, kept across throws.
+            bool showCapThrowMarkers = false;
+            sead::Vector3f capThrowPositions[kMaxCapThrows];
+            sead::Vector3f capThrowDirections[kMaxCapThrows];
+            int capThrowCount = 0;
+            int capThrowWriteIndex = 0;
         } renderer;
 
         struct {
@@ -134,7 +143,7 @@ namespace ui {
 
         enum Page : u8 {
             Menu, About,
-            Options, OptionsMvmt, OptionsMoon, OptionsSave, OptionsCamera, OptionsTeleport, OptionsRenderer, OptionsPipeMaze,
+            Options, OptionsMvmt, OptionsMoon, OptionsSave, OptionsCamera, OptionsTeleport, OptionsRenderer, OptionsPipeMaze, OptionsReview,
             Stage, Misc,
             Info, InfoPlayer, InfoCapBounce, InfoMoon, InfoHack, InfoCappy, InfoStatistics, InfoCamera, InfoMighty1, InfoMighty2, InfoJump, InfoRelative,
             Tas, Modes, Debug,
@@ -285,8 +294,9 @@ namespace ui {
         al::HitSensor* currentCarry;
         int heldDirFrames = 0;
 
-        bool reviewModeWasActive = false; // for detecting the on/off transition to (re)apply noclip
-        bool capWasFlyingLastFrame = false; // for starting a fresh Cappy trail on each new throw
+        bool reviewModeWasActive = false; // for detecting the on/off transition to (re)apply noclip/gravity
+        bool capWasFlyingLastFrame = false; // for detecting the start of a new throw
+        sead::Vector3f savedGravity = sead::Vector3f::zero; // Mario's gravity, saved while review mode zeroes it
 
         char textBuffer[4096];
         u32 printPos;

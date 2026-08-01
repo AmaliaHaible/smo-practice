@@ -537,13 +537,26 @@ void fl::ui::PracticeUI::updateMarioPath(PlayerActorHakoniwa& player) {
 void fl::ui::PracticeUI::resetCapPath() {
     renderer.capPathPointCount = 0;
     renderer.capPathWriteIndex = 0;
+    renderer.capThrowCount = 0;
+    renderer.capThrowWriteIndex = 0;
 }
 
 void fl::ui::PracticeUI::updateCapPath(HackCap* cap) {
     bool flying = cap->isFlying();
 
-    if (flying && !capWasFlyingLastFrame)
-        resetCapPath(); // start a fresh trail for each new throw
+    // Record a throw marker on every new throw, but keep accumulating the full trail
+    // across throws rather than wiping it - resetCapPath() is the only thing that clears it.
+    if (flying && !capWasFlyingLastFrame) {
+        sead::Vector3f dir = *al::getVelocity(cap);
+        float dirLen = sead::norm2(dir);
+        dir = (dirLen > 0.0001f) ? dir * (1.0f / dirLen) : sead::Vector3f::ez;
+
+        renderer.capThrowPositions[renderer.capThrowWriteIndex] = *al::getTrans(cap);
+        renderer.capThrowDirections[renderer.capThrowWriteIndex] = dir;
+        renderer.capThrowWriteIndex = (renderer.capThrowWriteIndex + 1) % kMaxCapThrows;
+        if (renderer.capThrowCount < kMaxCapThrows)
+            renderer.capThrowCount++;
+    }
     capWasFlyingLastFrame = flying;
 
     if (!flying) return;
@@ -561,7 +574,7 @@ void fl::ui::PracticeUI::updateReviewModeFlight(PlayerActorHakoniwa& player) {
     float camAngle = atan2f(camDiff.x, camDiff.z);
 
     sead::Vector3f camForward(sinf(camAngle), 0.0f, cosf(camAngle));
-    sead::Vector3f camRight(cosf(camAngle), 0.0f, -sinf(camAngle));
+    sead::Vector3f camRight(-cosf(camAngle), 0.0f, sinf(camAngle));
 
     sead::Vector2f* stick = al::getLeftStick(-1);
     sead::Vector3f moveDir = camForward * stick->y + camRight * stick->x;
@@ -622,21 +635,24 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
 
     if (!player) return;
 
-    // Recording always runs, regardless of review mode, so the full lead-up is already
-    // there once you turn review mode on after the jump.
-    updateMarioPath(*player);
-    if (player->mHackCap)
-        updateCapPath(player->mHackCap);
+    // Recording runs whenever review mode is off, so the full lead-up is already there
+    // once you turn review mode on after the jump. It pauses while reviewing so flying
+    // around to inspect the path doesn't get appended to it.
+    if (!renderer.reviewModeActive) {
+        updateMarioPath(*player);
+        if (player->mHackCap)
+            updateCapPath(player->mHackCap);
+    }
 
     if (renderer.reviewModeActive != reviewModeWasActive) {
-        al::LiveActor* move = player;
-        al::LiveActor* hack = player->mHackKeeper->mCurrentHackActor;
-        if (hack) move = hack;
-
-        if (renderer.reviewModeActive)
-            al::offCollide(move);
-        else
-            al::onCollide(move);
+        if (renderer.reviewModeActive) {
+            al::offCollide(player);
+            savedGravity = *al::getGravity(player);
+            al::setGravity(player, sead::Vector3f::zero);
+        } else {
+            al::onCollide(player);
+            al::setGravity(player, savedGravity);
+        }
 
         reviewModeWasActive = renderer.reviewModeActive;
     }
@@ -655,8 +671,12 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
 
             if (triggerRight && savestates[savestateIndex].mSaved) {
                 loadPositionPlayer(*player, savestateIndex);
-                resetMarioPath();
-                resetCapPath();
+                // Teleporting back while reviewing is just repositioning to look around,
+                // not a fresh attempt - don't wipe the recorded paths in that case.
+                if (!renderer.reviewModeActive) {
+                    resetMarioPath();
+                    resetCapPath();
+                }
             }
         }
 
@@ -772,7 +792,7 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
                 TITLE("Options");
                 BACK_PAGE(Menu, 0);
 #if SMOVER == 100
-                MAX_LINE(14);
+                MAX_LINE(15);
 #elif SMOVER == 130
                 MAX_LINE(4);
 #endif
@@ -824,6 +844,7 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
 
                 #if SMOVER == 100
                 CHANGE_PAGE("PipeMaze Randomness", OptionsPipeMaze, 13);
+                CHANGE_PAGE("Trickjump Review", OptionsReview, 14);
                 #endif
 
                 break;
@@ -916,7 +937,7 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
             }
             case OptionsRenderer: {
                 TITLE("Options: Renderer");
-                MAX_LINE(14);
+                MAX_LINE(12);
                 BACK_PAGE(Options, 0);
 
                 TOGGLE("Enable Game rendering", options.shouldRender, 1);
@@ -930,10 +951,20 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
                 TOGGLE("Show ceiling HitInfo", renderer.showHitInfoCeil, 9);
                 TOGGLE("Show HitInfo array", renderer.showHitInfoArray, 10);
                 TOGGLE("Show CRC position", renderer.showCRC, 11);
-                TOGGLE("Trickjump review mode (L+DUp)", renderer.reviewModeActive, 12);
-                TOGGLE("Show Cappy path", renderer.showCapPath, 13);
+
+                break;
+            }
+            case OptionsReview: {
+                TITLE("Options: Trickjump Review");
+                MAX_LINE(4);
+                BACK_PAGE(Options, 0);
+
+                TOGGLE("Trickjump review mode (L+DUp)", renderer.reviewModeActive, 1);
+                TOGGLE("Show Cappy path", renderer.showCapFullPath, 2);
+                TOGGLE("Show Cappy throw markers", renderer.showCapThrowMarkers, 3);
                 printf(" Mario path points: %d\n", renderer.marioPathPointCount);
                 printf(" Cappy path points: %d\n", renderer.capPathPointCount);
+                printf(" Cappy throws recorded: %d\n", renderer.capThrowCount);
 
                 break;
             }

@@ -230,8 +230,11 @@ void drawMainHook(sead::Viewport* viewport, sead::DrawContext* drawContext, sead
             renderer->setModelMatrix(mat);
             drawMovementPath(renderer, ui.renderer.marioPathPoints, ui.renderer.marioPathPointCount, ui.renderer.marioPathWriteIndex, fl::ui::kMaxPathPoints, 10.0f, {1.0f, 1.0f, 0.0f, 0.8f});
 
-            if (ui.renderer.showCapPath)
+            if (ui.renderer.showCapFullPath)
                 drawMovementPath(renderer, ui.renderer.capPathPoints, ui.renderer.capPathPointCount, ui.renderer.capPathWriteIndex, fl::ui::kMaxPathPoints, 8.0f, {1.0f, 0.3f, 0.0f, 0.8f});
+
+            if (ui.renderer.showCapThrowMarkers)
+                drawThrowMarkers(renderer, ui.renderer.capThrowPositions, ui.renderer.capThrowDirections, ui.renderer.capThrowCount, ui.renderer.capThrowWriteIndex, fl::ui::kMaxCapThrows);
         }
 
         if (ui.renderer.showCRC && cappy) {
