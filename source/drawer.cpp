@@ -104,8 +104,16 @@ void drawMovementPath(sead::PrimitiveRenderer* renderer, sead::Vector3f const* p
     }
 }
 
-void drawThrowMarkers(sead::PrimitiveRenderer* renderer, sead::Vector3f const* positions, sead::Vector3f const* directions, int count, int writeIndex, int capacity, float arrowLength, sead::Color4f color) {
+void drawThrowMarkers(sead::PrimitiveRenderer* renderer, sead::Vector3f const* positions, sead::Vector3f const* directions, int count, int writeIndex, int capacity, sead::Color4f color) {
     if (count < 1) return;
+
+    // drawLine doesn't render in every environment (confirmed on the reference setup this
+    // was built against), so the direction is shown as a dotted trail of small spheres
+    // instead of an actual line.
+    constexpr int kDirectionDots = 6;
+    constexpr float kDirectionDotSpacing = 25.0f;
+    constexpr float kOriginRadius = 16.0f;
+    constexpr float kDotRadius = 6.0f;
 
     int startIndex = (count < capacity) ? 0 : writeIndex;
 
@@ -113,8 +121,10 @@ void drawThrowMarkers(sead::PrimitiveRenderer* renderer, sead::Vector3f const* p
         int idx = (startIndex + i) % capacity;
         sead::Vector3f const& pos = positions[idx];
         sead::Vector3f const& dir = directions[idx];
-        renderer->drawSphere4x8(pos, 12.0f, color);
-        renderer->drawLine(pos, pos + dir * arrowLength, color);
+
+        renderer->drawSphere4x8(pos, kOriginRadius, color);
+        for (int d = 1; d <= kDirectionDots; ++d)
+            renderer->drawSphere4x8(pos + dir * (kDirectionDotSpacing * d), kDotRadius, color);
     }
 }
 

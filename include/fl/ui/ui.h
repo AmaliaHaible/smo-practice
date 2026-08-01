@@ -308,7 +308,7 @@ namespace ui {
         void resetMarioPath();
         void updateMarioPath(PlayerActorHakoniwa& player);
         void resetCapPath();
-        void updateCapPath(HackCap* cap);
+        void updateCapPath(PlayerActorHakoniwa& player, HackCap* cap);
         void updateReviewModeFlight(PlayerActorHakoniwa& player);
         #if SMOVER == 100
         const char* getNerveName(al::LiveActor* actor);

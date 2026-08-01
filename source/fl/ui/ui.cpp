@@ -509,6 +509,9 @@ static constexpr float kPathMinDistance = 20.0f;
 // when drawn as a flat primitive. Lift the recorded trail slightly so it's actually visible.
 static constexpr float kPathHeightOffset = 15.0f;
 static constexpr float kReviewModeFlySpeed = 30.0f;
+// Fully zeroing gravity leaves Mario's orientation logic without a "down" reference and he
+// ends up upside down; keep a tiny fraction so orientation stays sane while barely falling.
+static constexpr float kReviewModeGravityScale = 0.03f;
 
 static void pushPathPoint(sead::Vector3f* points, int capacity, int& count, int& writeIndex, sead::Vector3f const& pos) {
     if (count > 0) {
@@ -541,7 +544,7 @@ void fl::ui::PracticeUI::resetCapPath() {
     renderer.capThrowWriteIndex = 0;
 }
 
-void fl::ui::PracticeUI::updateCapPath(HackCap* cap) {
+void fl::ui::PracticeUI::updateCapPath(PlayerActorHakoniwa& player, HackCap* cap) {
     bool flying = cap->isFlying();
 
     // Record a throw marker on every new throw, but keep accumulating the full trail
@@ -551,7 +554,8 @@ void fl::ui::PracticeUI::updateCapPath(HackCap* cap) {
         float dirLen = sead::norm2(dir);
         dir = (dirLen > 0.0001f) ? dir * (1.0f / dirLen) : sead::Vector3f::ez;
 
-        renderer.capThrowPositions[renderer.capThrowWriteIndex] = *al::getTrans(cap);
+        // The marker sits where Mario was standing when he threw, not Cappy's own position.
+        renderer.capThrowPositions[renderer.capThrowWriteIndex] = *al::getTrans(&player);
         renderer.capThrowDirections[renderer.capThrowWriteIndex] = dir;
         renderer.capThrowWriteIndex = (renderer.capThrowWriteIndex + 1) % kMaxCapThrows;
         if (renderer.capThrowCount < kMaxCapThrows)
@@ -641,14 +645,14 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
     if (!renderer.reviewModeActive) {
         updateMarioPath(*player);
         if (player->mHackCap)
-            updateCapPath(player->mHackCap);
+            updateCapPath(*player, player->mHackCap);
     }
 
     if (renderer.reviewModeActive != reviewModeWasActive) {
         if (renderer.reviewModeActive) {
             al::offCollide(player);
             savedGravity = *al::getGravity(player);
-            al::setGravity(player, sead::Vector3f::zero);
+            al::setGravity(player, savedGravity * kReviewModeGravityScale);
         } else {
             al::onCollide(player);
             al::setGravity(player, savedGravity);
