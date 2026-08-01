@@ -2,9 +2,9 @@
 
 This is a mod for Super Mario Odyssey that adds different features that intend to aid in speedrun practice (but can also be used for other reasons).
 
-The mod is compatible with versions 1.0.0 and 1.3.0 of Super Mario Odyssey.
+The mod is compatible with version 1.0.0 of Super Mario Odyssey. The original also supports 1.3.0, but i haven't tested
 
-This is a continuation of the [original version of this mod by fruityloops1](https://github.com/fruityloops1/smo-practice).
+This is a continuation of the [fork by xiivler](https://github.com/xiivler/smo-practice) of the [original version of this mod by fruityloops1](https://github.com/fruityloops1/smo-practice).
 
 ## Features
 
@@ -15,6 +15,12 @@ This is a continuation of the [original version of this mod by fruityloops1](htt
 - Info display (player position, velocity, speed, etc.).
 - TAS Script Player (v1.0.0 only).
 - Other small features.
+
+## New in this fork
+Record your and cappies movement, and display it while noclip flying around.
+All of this is based on these projects
+[The timetravel mod by Amethyst-szs](https://github.com/Amethyst-szs/time-travel-standalone) for recording and displaying the paths
+[The flight mod by Collie1](https://github.com/Collie1/FlyMod)
 
 ## Prerequisites
 
@@ -145,3 +151,6 @@ make
 - [bryce_____](https://github.com/brycewithfiveunderscores), for his [Starlight SMO example](https://github.com/brycewithfiveunderscores/Starlight-SMO-Example).
 - devkitA64.
 - [libnx](https://github.com/switchbrew/libnx), for the Switch build rules.
+- [xiivler](https://github.com/xiivler/smo-practice), for his fork of the original practice mod
+- [Amethyst-szs](https://github.com/Amethyst-szs/time-travel-standalone), for her timetravel mod
+- [Collie1](https://github.com/Collie1/FlyMod), for the flight mod
