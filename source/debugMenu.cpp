@@ -225,10 +225,13 @@ void drawMainHook(sead::Viewport* viewport, sead::DrawContext* drawContext, sead
         if (ui.renderer.curAreaGroup && ui.renderer.showAreaGroup)
             drawAreaObjGroup(renderer, ui.renderer.curAreaGroup, false, {0.8f, 0.5f, 0.8f, 0.3f}, {0.8f, 0.5f, 0.8f, 0.3f}, {0.8f, 0.5f, 0.8f, 0.3f});
 
-        if (ui.renderer.showMovementPath) {
+        if (ui.renderer.reviewModeActive) {
             // Earlier area draws above may have left a non-identity model matrix; our points are absolute world-space.
             renderer->setModelMatrix(mat);
-            drawMovementPath(renderer, ui.renderer.pathPoints, ui.renderer.pathPointCount, ui.renderer.pathWriteIndex, fl::ui::kMaxPathPoints);
+            drawMovementPath(renderer, ui.renderer.marioPathPoints, ui.renderer.marioPathPointCount, ui.renderer.marioPathWriteIndex, fl::ui::kMaxPathPoints, 10.0f, {1.0f, 1.0f, 0.0f, 0.8f});
+
+            if (ui.renderer.showCapPath)
+                drawMovementPath(renderer, ui.renderer.capPathPoints, ui.renderer.capPathPointCount, ui.renderer.capPathWriteIndex, fl::ui::kMaxPathPoints, 8.0f, {1.0f, 0.3f, 0.0f, 0.8f});
         }
 
         if (ui.renderer.showCRC && cappy) {

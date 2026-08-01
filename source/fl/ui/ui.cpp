@@ -504,37 +504,82 @@ void fl::ui::PracticeUI::toggleNoclip(PlayerActorHakoniwa& player) {
     }
 }
 
-static constexpr float kMovementPathMinDistance = 20.0f;
-// Mario's transform sits at ground level, which z-fights with the terrain mesh when drawn as a flat line.
-// Lift the recorded trail slightly so it's actually visible above the floor.
-static constexpr float kMovementPathHeightOffset = 15.0f;
+static constexpr float kPathMinDistance = 20.0f;
+// Mario's (and Cappy's) transform sits at ground level, which z-fights with the terrain mesh
+// when drawn as a flat primitive. Lift the recorded trail slightly so it's actually visible.
+static constexpr float kPathHeightOffset = 15.0f;
+static constexpr float kReviewModeFlySpeed = 30.0f;
 
-void fl::ui::PracticeUI::resetMovementPath() {
-    renderer.pathPointCount = 0;
-    renderer.pathWriteIndex = 0;
-}
-
-void fl::ui::PracticeUI::updateMovementPath(PlayerActorHakoniwa& player) {
-    sead::Vector3f pos = *al::getTrans(&player);
-    pos.y += kMovementPathHeightOffset;
-
-    if (renderer.pathPointCount > 0) {
-        sead::Vector3f const& last = renderer.pathPoints[(renderer.pathWriteIndex + kMaxPathPoints - 1) % kMaxPathPoints];
-        if (sead::norm2(pos - last) < kMovementPathMinDistance)
+static void pushPathPoint(sead::Vector3f* points, int capacity, int& count, int& writeIndex, sead::Vector3f const& pos) {
+    if (count > 0) {
+        sead::Vector3f const& last = points[(writeIndex + capacity - 1) % capacity];
+        if (sead::norm2(pos - last) < kPathMinDistance)
             return;
     }
 
-    renderer.pathPoints[renderer.pathWriteIndex] = pos;
-    renderer.pathWriteIndex = (renderer.pathWriteIndex + 1) % kMaxPathPoints;
-    if (renderer.pathPointCount < kMaxPathPoints)
-        renderer.pathPointCount++;
+    points[writeIndex] = pos;
+    writeIndex = (writeIndex + 1) % capacity;
+    if (count < capacity)
+        count++;
+}
+
+void fl::ui::PracticeUI::resetMarioPath() {
+    renderer.marioPathPointCount = 0;
+    renderer.marioPathWriteIndex = 0;
+}
+
+void fl::ui::PracticeUI::updateMarioPath(PlayerActorHakoniwa& player) {
+    sead::Vector3f pos = *al::getTrans(&player);
+    pos.y += kPathHeightOffset;
+    pushPathPoint(renderer.marioPathPoints, kMaxPathPoints, renderer.marioPathPointCount, renderer.marioPathWriteIndex, pos);
+}
+
+void fl::ui::PracticeUI::resetCapPath() {
+    renderer.capPathPointCount = 0;
+    renderer.capPathWriteIndex = 0;
+}
+
+void fl::ui::PracticeUI::updateCapPath(HackCap* cap) {
+    bool flying = cap->isFlying();
+
+    if (flying && !capWasFlyingLastFrame)
+        resetCapPath(); // start a fresh trail for each new throw
+    capWasFlyingLastFrame = flying;
+
+    if (!flying) return;
+
+    sead::Vector3f pos = *al::getTrans(cap);
+    pos.y += kPathHeightOffset;
+    pushPathPoint(renderer.capPathPoints, kMaxPathPoints, renderer.capPathPointCount, renderer.capPathWriteIndex, pos);
+}
+
+void fl::ui::PracticeUI::updateReviewModeFlight(PlayerActorHakoniwa& player) {
+    al::setVelocityZero(&player);
+
+    sead::LookAtCamera* camera = al::getLookAtCamera(stageScene, 0);
+    sead::Vector3f camDiff = camera->mAt - camera->mPos;
+    float camAngle = atan2f(camDiff.x, camDiff.z);
+
+    sead::Vector3f camForward(sinf(camAngle), 0.0f, cosf(camAngle));
+    sead::Vector3f camRight(cosf(camAngle), 0.0f, -sinf(camAngle));
+
+    sead::Vector2f* stick = al::getLeftStick(-1);
+    sead::Vector3f moveDir = camForward * stick->y + camRight * stick->x;
+    al::addVelocity(&player, moveDir * kReviewModeFlySpeed);
+
+    float vertical = 0.0f;
+    if (isHoldA()) vertical += 1.0f; // A = up
+    if (isHoldB()) vertical -= 1.0f; // B = down
+    if (vertical != 0.0f)
+        al::addVelocity(&player, sead::Vector3f(0.0f, vertical * kReviewModeFlySpeed, 0.0f));
 }
 
 void fl::ui::PracticeUI::kill() {
     renderer.curArea = nullptr;
     renderer.curAreaGroup = nullptr;
     renderer.nearestEdgePoint = sead::Vector3f::zero;
-    resetMovementPath();
+    resetMarioPath();
+    resetCapPath();
 
     currentActor = nullptr;
     actorIndex = 0;
@@ -564,7 +609,7 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
             showMenu = !showMenu;
             nextFrameNoLeftInput = true;
     } else if (holdL && isTriggerUp()) {
-        renderer.showMovementPath = !renderer.showMovementPath;
+        renderer.reviewModeActive = !renderer.reviewModeActive;
         return;
     }
 
@@ -577,8 +622,27 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
 
     if (!player) return;
 
-    if (renderer.showMovementPath)
-        updateMovementPath(*player);
+    // Recording always runs, regardless of review mode, so the full lead-up is already
+    // there once you turn review mode on after the jump.
+    updateMarioPath(*player);
+    if (player->mHackCap)
+        updateCapPath(player->mHackCap);
+
+    if (renderer.reviewModeActive != reviewModeWasActive) {
+        al::LiveActor* move = player;
+        al::LiveActor* hack = player->mHackKeeper->mCurrentHackActor;
+        if (hack) move = hack;
+
+        if (renderer.reviewModeActive)
+            al::offCollide(move);
+        else
+            al::onCollide(move);
+
+        reviewModeWasActive = renderer.reviewModeActive;
+    }
+
+    if (renderer.reviewModeActive)
+        updateReviewModeFlight(*player);
 
     if (!showMenu || (!inputEnabled && !holdL))
     {
@@ -591,7 +655,8 @@ void fl::ui::PracticeUI::update(StageScene* stageScene) {
 
             if (triggerRight && savestates[savestateIndex].mSaved) {
                 loadPositionPlayer(*player, savestateIndex);
-                resetMovementPath();
+                resetMarioPath();
+                resetCapPath();
             }
         }
 
@@ -851,7 +916,7 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
             }
             case OptionsRenderer: {
                 TITLE("Options: Renderer");
-                MAX_LINE(13);
+                MAX_LINE(14);
                 BACK_PAGE(Options, 0);
 
                 TOGGLE("Enable Game rendering", options.shouldRender, 1);
@@ -865,10 +930,10 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
                 TOGGLE("Show ceiling HitInfo", renderer.showHitInfoCeil, 9);
                 TOGGLE("Show HitInfo array", renderer.showHitInfoArray, 10);
                 TOGGLE("Show CRC position", renderer.showCRC, 11);
-                TOGGLE("Show movement path", renderer.showMovementPath, 12);
-                printf(" Path points: %d (write idx %d)\n", renderer.pathPointCount, renderer.pathWriteIndex);
-                if (renderer.pathPointCount > 0)
-                    PRINT_VEC3(" Last point", renderer.pathPoints[(renderer.pathWriteIndex + kMaxPathPoints - 1) % kMaxPathPoints]);
+                TOGGLE("Trickjump review mode (L+DUp)", renderer.reviewModeActive, 12);
+                TOGGLE("Show Cappy path", renderer.showCapPath, 13);
+                printf(" Mario path points: %d\n", renderer.marioPathPointCount);
+                printf(" Cappy path points: %d\n", renderer.capPathPointCount);
 
                 break;
             }

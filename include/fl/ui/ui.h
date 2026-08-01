@@ -110,10 +110,17 @@ namespace ui {
 #endif
             bool showHitSensors = false;
 
-            bool showMovementPath = false;
-            sead::Vector3f pathPoints[kMaxPathPoints];
-            int pathPointCount = 0; // number of valid points, saturates at kMaxPathPoints
-            int pathWriteIndex = 0; // next write position (ring buffer)
+            // Trickjump review mode: shows Mario's (and optionally Cappy's) recorded path,
+            // and while active swaps in noclip + no-gravity fly controls.
+            bool reviewModeActive = false;
+            sead::Vector3f marioPathPoints[kMaxPathPoints];
+            int marioPathPointCount = 0; // number of valid points, saturates at kMaxPathPoints
+            int marioPathWriteIndex = 0; // next write position (ring buffer)
+
+            bool showCapPath = false;
+            sead::Vector3f capPathPoints[kMaxPathPoints];
+            int capPathPointCount = 0;
+            int capPathWriteIndex = 0;
         } renderer;
 
         struct {
@@ -278,6 +285,9 @@ namespace ui {
         al::HitSensor* currentCarry;
         int heldDirFrames = 0;
 
+        bool reviewModeWasActive = false; // for detecting the on/off transition to (re)apply noclip
+        bool capWasFlyingLastFrame = false; // for starting a fresh Cappy trail on each new throw
+
         char textBuffer[4096];
         u32 printPos;
 
@@ -285,8 +295,11 @@ namespace ui {
         void loadPositionPlayer(PlayerActorHakoniwa& player, s8 idx);
         void loadPosition(al::LiveActor* actor, s8 idx);
         void toggleNoclip(PlayerActorHakoniwa& player);
-        void resetMovementPath();
-        void updateMovementPath(PlayerActorHakoniwa& player);
+        void resetMarioPath();
+        void updateMarioPath(PlayerActorHakoniwa& player);
+        void resetCapPath();
+        void updateCapPath(HackCap* cap);
+        void updateReviewModeFlight(PlayerActorHakoniwa& player);
         #if SMOVER == 100
         const char* getNerveName(al::LiveActor* actor);
         #endif
