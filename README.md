@@ -18,8 +18,11 @@ This is a continuation of the [fork by xiivler](https://github.com/xiivler/smo-p
 
 ## New in this fork
 Record your and cappies movement, and display it while noclip flying around.
+
 All of this is based on these projects
+
 [The timetravel mod by Amethyst-szs](https://github.com/Amethyst-szs/time-travel-standalone) for recording and displaying the paths
+
 [The flight mod by Collie1](https://github.com/Collie1/FlyMod)
 
 ## Prerequisites
