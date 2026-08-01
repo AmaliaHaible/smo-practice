@@ -296,6 +296,7 @@ namespace ui {
 
         bool reviewModeWasActive = false; // for detecting the on/off transition to (re)apply noclip/gravity
         bool capWasFlyingLastFrame = false; // for detecting the start of a new throw
+        int capThrowButtonWindow = 0; // frames left where a recent X/Y press still counts as "just threw"
         sead::Vector3f savedGravity = sead::Vector3f::zero; // Mario's gravity, saved while review mode zeroes it
 
         char textBuffer[4096];

@@ -16,5 +16,7 @@ bool isHoldUp();
 bool isHoldDown();
 bool isHoldA();
 bool isHoldB();
+bool isTriggerX();
+bool isTriggerY();
 bool isL();
 bool isTriggerPressLeftStick();

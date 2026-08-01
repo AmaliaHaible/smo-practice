@@ -547,9 +547,18 @@ void fl::ui::PracticeUI::resetCapPath() {
 void fl::ui::PracticeUI::updateCapPath(PlayerActorHakoniwa& player, HackCap* cap) {
     bool flying = cap->isFlying();
 
-    // Record a throw marker on every new throw, but keep accumulating the full trail
-    // across throws rather than wiping it - resetCapPath() is the only thing that clears it.
-    if (flying && !capWasFlyingLastFrame) {
+    if (isTriggerX() || isTriggerY())
+        capThrowButtonWindow = 10;
+    else if (capThrowButtonWindow > 0)
+        capThrowButtonWindow--;
+
+    // isFlying() also goes true when Mario bounces off Cappy, not just on an actual throw.
+    // Only treat a false->true transition as a new throw if the throw button was actually
+    // pressed recently, and keep accumulating the full trail across throws rather than
+    // wiping it - resetCapPath() is the only thing that clears it.
+    if (flying && !capWasFlyingLastFrame && capThrowButtonWindow > 0) {
+        capThrowButtonWindow = 0; // consumed, so a bounce right after this doesn't also count
+
         sead::Vector3f dir = *al::getVelocity(cap);
         float dirLen = sead::norm2(dir);
         dir = (dirLen > 0.0001f) ? dir * (1.0f / dirLen) : sead::Vector3f::ez;
@@ -802,35 +811,38 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
 #endif
 
                 CHANGE_PAGE("Movement", OptionsMvmt, 1);
-                CHANGE_PAGE("Saving", OptionsSave, 2);
 #if SMOVER == 100
-                CHANGE_PAGE("Renderer", OptionsRenderer, 3);
-                TOGGLE("Disable Losing Health", options.noDamageLife, 4);
-                TOGGLE("Always Enable Warps", options.alwaysWarp, 5);
-                TOGGLE("Cloud Kingdom Bowser Skip", options.skipBowser, 6);
-                TOGGLE("Disable Moon Requirement", options.disableShineNumUnlock, 7);
-                TOGGLE("Enable Moe-Eye Vision", options.showOddSpace, 8);
-                TOGGLE("Override Bowser Hat Randomizer", options.overrideBowserHat0, 9);
+                CHANGE_PAGE("Trickjump Review", OptionsReview, 2);
+#endif
+                CHANGE_PAGE("Saving", OptionsSave, 3);
+#if SMOVER == 100
+                CHANGE_PAGE("Renderer", OptionsRenderer, 4);
+                TOGGLE("Disable Losing Health", options.noDamageLife, 5);
+                TOGGLE("Always Enable Warps", options.alwaysWarp, 6);
+                TOGGLE("Cloud Kingdom Bowser Skip", options.skipBowser, 7);
+                TOGGLE("Disable Moon Requirement", options.disableShineNumUnlock, 8);
+                TOGGLE("Enable Moe-Eye Vision", options.showOddSpace, 9);
+                TOGGLE("Override Bowser Hat Randomizer", options.overrideBowserHat0, 10);
 
-                CURSOR(10);
+                CURSOR(11);
                 printf("%sWiggler Pattern: %s\n", charCursor, curPattern == PracticeUI::MofumofuPattern::Random ? "Random" : mPatternEntries[curPattern].typeStr);
-                if (curLine == 10 && inputEnabled && !movingPage && !nextFrameNoLeftInput && triggerLeft) {
+                if (curLine == 11 && inputEnabled && !movingPage && !nextFrameNoLeftInput && triggerLeft) {
                     if ((*(s8 *)&curPattern) == (s8)PracticeUI::MofumofuPattern::Random)
 		            	(*(s8 *)&curPattern) = (s8)PracticeUI::MofumofuPattern::Star;
 		            else
 		            	(*(s8 *)&curPattern)--;
                 }
-                else if (curLine == 10 && inputEnabled && !movingPage && !nextFrameNoRightInput && triggerRight) {
+                else if (curLine == 11 && inputEnabled && !movingPage && !nextFrameNoRightInput && triggerRight) {
                     if ((*(s8 *)&curPattern) == (s8)PracticeUI::MofumofuPattern::Star)
 		            	(*(s8 *)&curPattern) = (s8)PracticeUI::MofumofuPattern::Random;
 		            else
 		            	(*(s8 *)&curPattern)++;
                 }
-                TOGGLE("Disable music", options.muteBgm, 11);
+                TOGGLE("Disable music", options.muteBgm, 12);
 #endif
 #if SMOVER == 100
-                CURSOR(12);
-                if (inputEnabled && !movingPage && curLine == 12)
+                CURSOR(13);
+                if (inputEnabled && !movingPage && curLine == 13)
 #elif SMOVER == 130
                 CURSOR(3);
                 if (inputEnabled && !movingPage && curLine == 3)
@@ -847,8 +859,7 @@ void fl::ui::PracticeUI::menu(sead::TextWriter& p)
                 printf("%sDigits for Info: %d\n", charCursor, numDigits);
 
                 #if SMOVER == 100
-                CHANGE_PAGE("PipeMaze Randomness", OptionsPipeMaze, 13);
-                CHANGE_PAGE("Trickjump Review", OptionsReview, 14);
+                CHANGE_PAGE("PipeMaze Randomness", OptionsPipeMaze, 14);
                 #endif
 
                 break;

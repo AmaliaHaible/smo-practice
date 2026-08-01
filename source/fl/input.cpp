@@ -48,6 +48,12 @@ bool isHoldA() {
 bool isHoldB() {
     return isPressed(1) && isPressedPrev(1);
 }
+bool isTriggerX() {
+    return isPressed(2) && !isPressedPrev(2);
+}
+bool isTriggerY() {
+    return isPressed(3) && !isPressedPrev(3);
+}
 bool isL() {
     return isPressed(6);
 }
